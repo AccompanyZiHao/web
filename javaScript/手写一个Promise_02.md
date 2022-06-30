@@ -132,6 +132,6 @@ p1('xiaobaicai').then((value) => {
 
 ```
 
-这样一个简易版的 `Promise` 就完成了。 简易版的完整代码：[点这里](https://github.com/AccompanyZiHao/vuepress/blob/master/docs/javaScript/Promise_01.js)
+这样一个简易版的 `Promise` 就完成了。 简易版的完整代码：[点这里](https://github.com/AccompanyZiHao/web/blob/master/javaScript/Promise_01.js)
 
 > Here “platform code” means engine, environment, and promise implementation code. In practice, this requirement ensures that onFulfilled and onRejected execute asynchronously, after the event loop turn in which then is called, and with a fresh stack. This can be implemented with either a “macro-task” mechanism such as setTimeout or setImmediate, or with a “micro-task” mechanism such as MutationObserver or process.nextTick. Since the promise implementation is considered platform code, it may itself contain a task-scheduling queue or “trampoline” in which the handlers are called.
