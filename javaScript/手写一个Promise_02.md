@@ -10,7 +10,7 @@ tags:
 #issueId:
 ---
 
-# 1. new Promise 接受一个 executor 执行器，该执行器有 2 个参数 resolve reject
+# new Promise 接受一个 executor 执行器，该执行器有 2 个参数 resolve reject
 
 ```javascript
 // 定义状态
@@ -76,6 +76,7 @@ class mPromise {
 
 1. 接受两个参数 onFulfilled 和 onRejected 都是可选参数
 2. 返回一个 Promise 对象
+
 ```javascript
 function isFunction(param) {
   return typeof param === 'function';
@@ -134,4 +135,137 @@ p1('xiaobaicai').then((value) => {
 
 这样一个简易版的 `Promise` 就完成了。 简易版的完整代码：[点这里](https://github.com/AccompanyZiHao/web/blob/master/javaScript/Promise_01.js)
 
-> Here “platform code” means engine, environment, and promise implementation code. In practice, this requirement ensures that onFulfilled and onRejected execute asynchronously, after the event loop turn in which then is called, and with a fresh stack. This can be implemented with either a “macro-task” mechanism such as setTimeout or setImmediate, or with a “micro-task” mechanism such as MutationObserver or process.nextTick. Since the promise implementation is considered platform code, it may itself contain a task-scheduling queue or “trampoline” in which the handlers are called.
+上面的只能实现一个 `then` 的方法，当我连续链式调用的时候就会报错，我们来修改一下代码。
+
+```javascript
+class MyPromise {
+  FULFILLED_STASH = [];
+  REJECTED_STASH = [];
+
+  resolve(value) {
+    if (this.status == PENDING) {
+      ...
+      this.FULFILLED_STASH.forEach((fn) => fn()); // 执行队列中的任务
+    }
+  }
+
+  reject(reason) {
+    ...
+      this.REJECTED_STASH.forEach((fn) => fn());
+  }
+
+  then(onFulfilled, onRejected) {
+    ...
+     if (this.status === PENDING) {
+        this.FULFILLED_TASK.push(onFulfilled)
+        this.REJECTED_TASK.push(onRejected)
+      }
+  }
+}
+```
+
+当我们在链式调用的时候用队列存储起来， 在执行 `resolve` 的时候依次调用，但是有个问题，这个时候我们 value 只有一个，在连续调用的时候会不会被覆盖呢？
+
+```javascript
+function p1(val) {
+  return new MyPromise(function (resolve, reject) {
+    setTimeout(() => {
+      resolve(val);
+    }, 1000);
+  });
+}
+
+function p2(val) {
+  return new MyPromise(function (resolve, reject) {
+    setTimeout(() => {
+      resolve(val);
+    }, 1000);
+  });
+}
+
+p1('xiaobaicai')
+  .then((value) => {
+    console.log('p1 value', value);
+    return p2('data333');
+  })
+  .then((val) => {
+    console.log('p2', val);
+  });
+
+// xiaobaicai
+```
+
+关于 then 的调用时机
+
+```javascript
+then(onFulfilled, onRejected) {
+    // 这两个不是函数就忽略
+    onFulfilled = isFunction(onFulfilled) ? onFulfilled : (value) => value;
+    onRejected = isFunction(onRejected) ? onRejected : (reason) => reason;
+
+    const p = new MyPromise((resolve, reject) => {
+      const fulfilledMicrotask = () => {
+        queueMicrotask(() => {
+          let x = onFulfilled(this.value);
+          this.resolvePromise(p, x, resolve, reject);
+        });
+      };
+      const rejectedMicrotask = () => {
+        queueMicrotask(() => {
+          let x = onRejected(this.reason);
+          this.resolvePromise(p, x, resolve, reject);
+        });
+      };
+      if (this.status === FULFILLED) {
+        fulfilledMicrotask();
+      } else if (this.status === REJECTED) {
+        rejectedMicrotask();
+      } else {
+        this.FULFILLED_TASK.push(fulfilledMicrotask);
+        this.REJECTED_TASK.push(rejectedMicrotask);
+      }
+    });
+    return p;
+  }
+```
+
+```javascript
+  resolvePromise(promise, x, resolve, reject) {
+    if (promise === x) {
+      return reject(new TypeError('is circle'));
+    }
+    if (isFunction(x) || (typeof x === 'object' && x !== null)) {
+      let tag = false; // 只能调用一次
+      try {
+        let then = x.then;
+        if (isFunction(then)) {
+          then.call(
+            x,
+            (y) => {
+              if (tag) return;
+              tag = true;
+              this.resolvePromise(promise, y, resolve, reject);
+            },
+            (reason) => {
+              if (tag) return;
+              tag = true;
+              reject(reason);
+            }
+          );
+        } else {
+          if (tag) return;
+          tag = true;
+          resolve(x);
+        }
+      } catch (error) {
+        if (tag) return;
+        tag = true;
+        reject(error);
+      }
+    } else {
+      resolve(x);
+    }
+  }
+```
+
+完整版的代码：[点这里](https://github.com/AccompanyZiHao/web/blob/master/javaScript/Promise_03.js)

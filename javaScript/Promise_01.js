@@ -42,7 +42,7 @@ class MyPromise {
     onFulfilled = isFunction(onFulfilled) ? onFulfilled : (value) => value;
     onRejected = isFunction(onRejected) ? onRejected : (reason) => reason;
 
-    const p = new MyPromise((reslove, inject) => {
+    const p = new MyPromise((resolve, reject) => {
       if (this.status === PENDING) {
         this.FULFILLED_TASK = onFulfilled;
         this.REJECTED_TASK = onRejected;
@@ -63,3 +63,10 @@ function p1(val) {
 p1('xiaobaicai').then((value) => {
   console.log('then value', value);
 });
+
+// 执行顺序
+/*
+1. new MyPromise(executor), 立即执行 executor， status 为 pedding
+2. 执行 then 方法后，重新 new 一个 MyPromise, 同步将 onFulfilled / onRejected 添加到任务，此处的是 （value) => { console.log('then value', value) }
+3. 异步执行 p1 的 resolve() 方法，
+*/
