@@ -195,7 +195,7 @@ p1('xiaobaicai')
 // xiaobaicai
 ```
 
-关于 then 的调用时机
+关于 then 的调用时机, 解释说明可以查看文章底部的全部代码。
 
 ```javascript
 then(onFulfilled, onRejected) {
@@ -269,3 +269,5 @@ then(onFulfilled, onRejected) {
 ```
 
 完整版的代码：[点这里](https://github.com/AccompanyZiHao/web/blob/master/javaScript/Promise_03.js)
+
+[Promises/A+ 代码仓库](https://github.com/promises-aplus/promises-spec)
