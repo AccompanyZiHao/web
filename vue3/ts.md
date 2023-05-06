@@ -339,6 +339,16 @@ function getCounter(): Counter {
 
 ## 三. 函数
 
+### 函数表达式
+
+用函数表达式描述一个函数
+
+```ts
+type fnType = (a: string) => void;
+```
+
+上面的语法表示类型是字符串类型，但是没有任何返回值。
+
 函数类型包含参数类型和返回值类型
 
 ```JavaScript
@@ -372,6 +382,8 @@ push(arr, 1, 2, 3);
 
 ### 函数重载
 
+函数签名 = 函数名称+函数参数+函数参数类型+返回值类型四者合成，包含了实现签名和重载签名
+
 函数根据传入不同的参数而返回不同类型的数据。
 
 ```JavaScript
@@ -388,3 +400,74 @@ function add(a: Combinable, b: Combinable) {
 ```
 
 为了让编译器能够选择正确的检查类型，查找重载列表，尝试使用第一个重载定义。 如果匹配的话就使用这个。 因此，在定义重载的时候，一定要把最精确的定义放在最前面。
+
+## 四. 断言
+
+有时候 `TypeScript` 无法知道的有关值类型的信息,比如，在使用`document.getElementById`的时候， TS 只知道是某种类型的 `HTMLElement`, 但是你知道它是一个 `HTMLCanvasElement`类型的，这个时候就可以用到断言。
+断言就是告诉编辑器，我知道我自己再干什么。
+
+### 类型断言
+
+`<>` 语法
+
+```typescript
+const myCanvas = <HTMLCanvasElement>document.getElementById('main_canvas');
+```
+
+`as` 语法
+
+```typescript
+const myCanvas = document.getElementById('main_canvas') as HTMLCanvasElement;
+```
+
+### 非空断言
+
+当上下文价检查器无法断定类型的时候，就需要在表达是后加一个**！** 表示对象是非`null`和非`undefined`类型的。
+
+```typescript
+function liveDangerously(x?: number | null) {
+  // 报错 'x' is possibly 'null' or 'undefined'.
+  console.log(x.toFixed());
+  // No error
+  console.log(x!.toFixed());
+}
+```
+
+有时候会遇到一些迷之操作。我们使用了非空断言，但是嘞，在编译之后，非空断言给移除了。比如下面的
+
+```typescript
+const a: number | undefined = undefined;
+const b: number = a!;
+console.log(b); // undefined
+```
+
+编译之后的代码
+
+```javascript
+'use strict';
+const a = undefined;
+const b = a;
+console.log(b);
+```
+
+### 确定赋值断言
+
+```typescript
+let x: number;
+init();
+// Variable 'x' is used before being assigned.(2454)
+console.log(2 * x); // Error
+
+function init() {
+  x = 10;
+}
+```
+
+我们可以告诉编译器，在使用之前已经赋值了
+
+```typescript
+let x!: number;
+...
+```
+
+<!-- https://juejin.cn/post/6872111128135073806#heading-30 -->
