@@ -1,29 +1,30 @@
 # typeScript 源码解析
 
 编译器主要分了三条线路:
-● 源代码 -> 扫描器 -> token流 -> 解析器 -> AST ->绑定器 -> Symbol(符号)
-● AST -> 检查器 ~~ Symbol(符号) -> 类型检查
-● AST -> 检查器 ~~ 发射器 -> js代码
+
+- 源代码 -> 扫描器 -> token流 -> 解析器 -> AST ->绑定器 -> Symbol(符号)
+- AST -> 检查器 ~~ Symbol(符号) -> 类型检查
+- AST -> 检查器 ~~ 发射器 -> js代码
 
 ## 一、扫描器 (scanner.ts)
 
-[扫描流程分析]('./scanner.md')
+[扫描流程分析](./scanner.md)
 
 ## 二、解析器 (parser.ts)
 
-[解析流程分析]('./parser.md')
+[解析流程分析](./parser.md)
 
 ## 三、绑定器 (binder.ts)
 
-[绑定流程分析]('./binder.md')
+[绑定流程分析](./binder.md)
 
 ## 四、检查器 (checker.ts)
 
-[检查流程分析]('./checker.md')
+[检查流程分析](./checker.md)
 
 ## 五、发射器 (emitter.ts)
 
-[发射流程分析]('./emitter.md')
+[发射流程分析](./emitter.md)
 
 ## 小结
 
