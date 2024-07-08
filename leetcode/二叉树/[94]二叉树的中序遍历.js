@@ -53,8 +53,9 @@
  * @return {number[]}
  */
 var inorderTraversal = function (root) {
-
   let stack = [];
+  deep(root);
+  return stack;
 
   function deep(node) {
     if (node === null) return;
@@ -62,8 +63,47 @@ var inorderTraversal = function (root) {
     stack.push(node.val);
     deep(node.right);
   }
+};
 
-  deep(root);
-  return stack;
+// 入栈 左 -> 右
+// 出栈 左 -> 中 -> 右
+var inorderTraversal = function (root) {
+  let res = [];
+  let stack = [];
+
+  let cur = root;
+  while (stack.length || cur) {
+    if(cur){
+      stack.push(cur);
+      cur = cur.left;
+    }else{
+      const node = stack.pop();
+      res.push(node.val);
+      cur = node.right;
+    }
+  }
+  return res;
+};
+//  中序遍历：左中右
+//  压栈顺序：右中左
+// 要处理的节点放入栈之后，紧接着放入一个空指针作为标记。 这种方法也可以叫做标记法。
+
+var inorderTraversal = function(root, res = []) {
+  const stack = [];
+  if (root) stack.push(root);
+  while(stack.length) {
+    const node = stack.pop();
+    if(!node) {
+      res.push(stack.pop().val);
+      continue;
+    }
+    if (node.right) stack.push(node.right); // 右
+    // 添加中节点
+    stack.push(node); // 中
+    // 加入空节点做为标记。
+    stack.push(null);
+    if (node.left) stack.push(node.left); // 左
+  };
+  return res;
 };
 //leetcode submit region end(Prohibit modification and deletion)

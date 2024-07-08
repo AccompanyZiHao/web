@@ -56,13 +56,49 @@ var postorderTraversal = function (root) {
 //输入：root = [1,null,2,3]
 //输出：[3,2,1]
   const stack = [];
+  deep(root);
+  return  stack;
   function deep(root) {
     if (root === null) return;
     deep(root.left);
     deep(root.right);
     stack.push(root.val);
   }
-  deep(root);
-  return  stack;
+};
+// 左 右 中
+// 入栈 左 -> 右
+// 出栈 中 -> 右 -> 左 结果翻转
+var postorderTraversal = function (root) {
+  if (root === null) return [];
+  const stack = [root];
+  const res = [];
+  while (stack.length) {
+    const node = stack.pop();
+    // 入栈
+    res.unshift(node.val);
+    // 左
+    if (node.left) stack.push(node.left);
+    // 右
+    if (node.right) stack.push(node.right);
+  }
+  return res
+}
+// 后续遍历：左右中
+// 压栈顺序：中右左
+var postorderTraversal = function(root, res = []) {
+  const stack = [];
+  if (root) stack.push(root);
+  while(stack.length) {
+    const node = stack.pop();
+    if(!node) {
+      res.push(stack.pop().val);
+      continue;
+    }
+    stack.push(node); // 中
+    stack.push(null);
+    if (node.right) stack.push(node.right); // 右
+    if (node.left) stack.push(node.left); // 左
+  };
+  return res;
 };
 //leetcode submit region end(Prohibit modification and deletion)
