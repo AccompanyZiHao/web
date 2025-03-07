@@ -505,3 +505,55 @@ if (cachedSettings) {
 
 更多：[Service_Worker_API](https://developer.mozilla.org/zh-CN/docs/Web/API/Service_Worker_API)
 
+## 异步加载
+
+`Webpack` 实现异步加载主要通过代码分割（`Code Splitting`）和动态导入（`Dynamic Import`）来实现。
+
+1. 动态导入
+
+   使用 `import()` 语法实现动态导入模块：
+   
+   ```js
+   // 异步加载模块
+   
+   button.onclick = () => {
+      import('./module.js').then(module => {
+         module.default();
+      });
+   }
+   ```
+
+2. 路由分割
+
+   在路由配置中实现组件的异步加载
+
+   ```js
+   const routes = [
+      {
+         path: '/about',
+         component: () => import('./pages/About.vue')
+      }
+   ]
+   ```
+   
+3. 预加载/预获取
+   使用魔法注释控制模块的加载行为：
+
+   ```js
+   // 预加载
+   import(/* webpackPrefetch: true */ './module.js')
+   // 预获取
+   import(/* webpackPreload: true */ './module.js')
+   ```
+   
+4. 命名和加载控制
+
+   ```js
+   // 自定义 chunk 名称
+   import(/* webpackChunkName: "my-chunk" */ './module.js')
+   // 设置加载模式 
+   import(/* webpackMode: "lazy" */ './module.js')
+   ```
+
+
+
