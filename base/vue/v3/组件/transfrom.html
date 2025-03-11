@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <style>
+    .box{
+        width: 100px;
+        height: 100px;
+        background: red;
+    }
+    .enter-from{
+        transform: translateX(100px);
+    }
+    .enter-to{
+        transform: translateX(0);
+    }
+    .enter-active{
+        transition: transform 1s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+    let el = document.createElement('div')
+    el.classList.add('box')
+
+    // 初始化样式
+    el.classList.add('enter-from')
+    el.classList.add('enter-active')
+
+    document.body.append(el)
+
+    // 切换状态
+    el.classList.remove('enter-from')
+    el.classList.add('enter-to')
+
+    /*
+    * 这段代码没生效，因为是在当前帧绘制的 dom , 浏览器只会绘制 enter-to 而不会绘制 enter-from
+    * */
+</script>
+<script>
+  let el2 = document.createElement('p')
+  el2.classList.add('box')
+
+  // 初始化样式
+  el2.classList.add('enter-from')
+  el2.classList.add('enter-active')
+
+  document.body.append(el2)
+
+  // 切换状态
+ requestAnimationFrame(()=>{
+   requestAnimationFrame(()=>{
+     el2.classList.remove('enter-from')
+     el2.classList.add('enter-to')
+
+     // 完成之后移除
+     el2.addEventListener('transitionend', ()=>{
+       el2.classList.remove('enter-to')
+       el2.classList.remove('enter-active')
+     })
+   })
+ })
+
+  // 离场动效
+  el2.addEventListener('click', ()=>{
+
+     const performRemove = () => el.parentNode.removeChild(el2)
+
+    // 设置初始状态
+    el2.classList.add('enter-from')
+    el2.classList.add('enter-active')
+
+    document.body.offsetHeight
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        // 切换状态
+        el2.classList.remove('enter-from')
+        el2.classList.add('enter-to')
+
+        el2.addEventListener('transitionend', ()=>{
+          el2.classList.remove('enter-to')
+          el2.classList.remove('enter-active')
+
+          // 移除过渡效果
+          performRemove()
+        })
+      })
+    })
+  })
+
+  /*
+  * 使用 requestAnimationFrame 函数注册的回调会在当前帧执行，除非其他代码已经调用了一次 requestAnimationFrame ，因此这里需要调用 2 次
+  * */
+</script>
+</body>
+</html>
