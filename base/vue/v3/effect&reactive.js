@@ -39,6 +39,8 @@ let activeEffect = null;
 const targetMap = new WeakMap();
 
 function track(target, key) {
+  if(!activeEffect) return
+
   let _depMap = targetMap.get(target);
   // 如果不存在 depMap 则重新建立一个 map 并和 target 关联起来
   if (!_depMap) {
@@ -81,13 +83,23 @@ function trick(target, key, value, receiver) {
       effectTask.add(effectFn)
     }
   });
-  effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
+  // effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
+
+  // 调度器
+  effectTask.forEach(effectFn =>{
+    // 如果存在调度器，则使用该调度器，并把副作用函数作为参数传递
+    if(effectFn.options && effectFn.options.scheduler){
+      effectFn.options.scheduler(effectFn)
+    }else{
+      effectFn && effectFn()
+    }
+  })
 }
 
 // 通过建立一个栈来保存 effect 函数，解决 effect 嵌套的问题，确保 activeEffect 始终指向当前正在执行的 effect
 const effectStack = [];
 
-function effect(fn) {
+function effect(fn, options) {
   const effectFn = () => {
     try {
       effectStack.push(effectFn);
@@ -100,6 +112,7 @@ function effect(fn) {
       activeEffect = effectStack[effectStack.length - 1];
     }
   };
+  effectFn.options = options
   effectFn.deps = []
   effectFn();
   return effectFn;
@@ -112,23 +125,41 @@ function cleanup(effectFn){
   effectFn.deps = []
 }
 
+// 实现一个调度器
+const jobQueue = new Set();
+// 将任务添加到微队列
+const p = Promise.resolve();
+// 是否正在刷新
+let isFlushing = false;
+function flush() {
+  if(isFlushing) return
+  isFlushing = true;
+
+  p.then(() => {
+    jobQueue.forEach(job => job())
+  }).finally(() => {
+    isFlushing = false
+  })
+}
+
+
 const state = reactive({
   course1: 100,
   course2: 99,
   ok: true,
   level: 1,
 });
-effect(() => {
-  console.log(`course1: ${ state.course1 }`);
-});
-effect(() => {
-  console.log(`course2: ${ state.course2 }`);
-});
+// effect(() => {
+//   console.log(`course1: ${ state.course1 }`);
+// });
+// effect(() => {
+//   console.log(`course2: ${ state.course2 }`);
+// });
 
 // 分支切换
-effect(()=>{
-  console.log(`state: ${ state.ok ? state.level : 'bad' }`);
-})
+// effect(()=>{
+//   console.log(`state branch: ${ state.ok ? state.level : 'bad' }`);
+// })
 
 // state.course1 = 99;
 // state.course2 = 100;
@@ -140,10 +171,26 @@ effect(()=>{
 // state.level = 4
 
 // 无限循环
+// effect(()=>{
+//   if(state.level > 5){
+//     throw new Error('state.level 无限循环')
+//   }
+//   console.log('state.level 无限循环', state.level);
+//   state.level +=1
+// })
+
+
+// 任务调度
 effect(()=>{
-  if(state.level > 5){
-    throw new Error('state.level 无限循环')
+  // 多次改变执行一次，异步操作
+  console.log('state.level', state.level);
+}, {
+  scheduler: (fn)=>{
+    jobQueue.add(fn)
+    flush()
   }
-  console.log('state.level 无限循环', state.level);
-  state.level +=1
 })
+
+state.level++;
+state.level++;
+
