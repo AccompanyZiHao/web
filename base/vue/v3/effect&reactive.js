@@ -1,3 +1,18 @@
+/*
+*
+* 1. 通过 proxy 实现对数据的拦截
+*   - get 方法，拦截读取操作
+*   - set 方法，拦截写入操作
+* 2. 依赖的收集 通过 track 实现， 建立 targetMap 和 effectFn 的映射关系
+* 3. 依赖的派发 通过 trick 实现
+*     - 依赖清除； 三元表达式，对不需要的依赖的清除
+*     - 无线递归调用：当前的副作用函数和正在执行的副作用函数相同，则不重新添加 例如：effect 中的 state.level +=1;
+*     - 有调度器，则使用调度器的回调函数
+* 4. 通过 effect 实现对数据的追踪
+*     - 通过栈来解决循环嵌套的问题，栈底是最外层，栈顶是最内层
+*     - computed：通过 options.lazy 来判断是否立即调用回调，从而实现 computed， effect 的回调的返回值作为计算属性的返回值
+*     - 通过不同的调度器来实现计算和侦听
+* */
 function reactive(target) {
   return new Proxy(target, {
     get(target, key) {
