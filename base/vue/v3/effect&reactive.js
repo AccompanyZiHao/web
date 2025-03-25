@@ -73,6 +73,7 @@ function trick(target, key, value, receiver) {
   effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
 }
 
+// 通过建立一个栈来保存 effect 函数，解决 effect 嵌套的问题，确保 activeEffect 始终指向当前正在执行的 effect
 const effectStack = [];
 
 function effect(fn) {
