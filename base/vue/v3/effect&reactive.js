@@ -106,7 +106,9 @@ function effect(fn, options) {
       activeEffect = effectFn;
       // 清除
       cleanup(effectFn)
-      fn();
+      // fn();
+      // 为实现计算属性，需要返回 fn() 的结果
+      return fn()
     } finally {
       effectStack.pop();
       activeEffect = effectStack[effectStack.length - 1];
@@ -114,7 +116,11 @@ function effect(fn, options) {
   };
   effectFn.options = options
   effectFn.deps = []
-  effectFn();
+
+  // 只有 lazy 不存在 时才执行
+  if(!options || !options.lazy){
+    effectFn();
+  }
   return effectFn;
 }
 
@@ -179,18 +185,25 @@ const state = reactive({
 //   state.level +=1
 // })
 
+function scheduler(fn){
+  jobQueue.add(fn)
+  flush()
+}
 
 // 任务调度
 effect(()=>{
   // 多次改变执行一次，异步操作
   console.log('state.level', state.level);
 }, {
-  scheduler: (fn)=>{
-    jobQueue.add(fn)
-    flush()
-  }
+  scheduler
 })
 
-state.level++;
-state.level++;
+// state.level++;
+// state.level++;
 
+module.exports = {
+  reactive,
+  effect,
+  track,
+  trick,
+}
