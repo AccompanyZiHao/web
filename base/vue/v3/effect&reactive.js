@@ -69,7 +69,18 @@ function trick(target, key, value, receiver) {
 
   // _deps.forEach(effectFn => effectFn && effectFn());
   // 原因见 vue/v3/响应式的实现/demo/forEach.js
-  const effectTask = new Set(_deps);
+  // 版本二 依赖清除
+  // const effectTask = new Set(_deps);
+  // effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
+
+  // 版本三 无线循环递归调用
+  const effectTask = new Set();
+  _deps.forEach(effectFn => {
+    // 如果 trick 触发的 effect 与当前正在执行的 effect 不同，则添加到任务中区
+    if(effectFn !== activeEffect){
+      effectTask.add(effectFn)
+    }
+  });
   effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
 }
 
@@ -123,7 +134,16 @@ effect(()=>{
 // state.course2 = 100;
 
 /*当 state.ok 的状态为 false 的时候，避免修改 state.level 触发分支切换函数的副作用*/
-state.level = 2
-state.ok = false
-console.log('====');
-state.level = 4
+// state.level = 2
+// state.ok = false
+// console.log('====');
+// state.level = 4
+
+// 无限循环
+effect(()=>{
+  if(state.level > 5){
+    throw new Error('state.level 无限循环')
+  }
+  console.log('state.level 无限循环', state.level);
+  state.level +=1
+})
