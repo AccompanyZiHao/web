@@ -12,6 +12,10 @@
 *     - 通过栈来解决循环嵌套的问题，栈底是最外层，栈顶是最内层
 *     - computed：通过 options.lazy 来判断是否立即调用回调，从而实现 computed， effect 的回调的返回值作为计算属性的返回值
 *     - 通过不同的调度器来实现计算和侦听
+* 5. 新增通过 ownKeys 来进行拦截，同时为 track 收集依赖的函数创建一个唯一的 key, 在 set 的时候，再触发一次副作用函数
+* 6. 删除通过 deleteProperty 进行拦截，同新增
+* 7. 修改判断值是否相同，不同再修改，注意 NaN 的判断
+* 8. 对于修改原型的方法，通过拦截器的 receiver.raw 来判断是否是代理对象，如果是的话则不更新
 * */
 
 const TriggerType = {
@@ -53,18 +57,31 @@ function reactive(target) {
 
       const res = Reflect.get(target, key);
 
+      // 代理对象可以通过 raw 属性访问原始对象
+      if(key === 'raw'){
+        return target;
+      }
+
       track(target, key);
 
       return res;
     },
 
     set(target, key, newValue, receiver) {
+      const oldValue = target[key];
+
       // 判断新增还是修改
       const type = Object.prototype.hasOwnProperty.call(target, key)? TriggerType.UPDATE: TriggerType.ADD;
 
       const res = Reflect.set(target, key, newValue, receiver);
 
-      trick(target, key, type);
+      // 只有 receiver 是 target 的代理对象时，才触发更新
+      if(target === receiver.raw){
+        // 旧的值不等于新的值 并且 值不等于 NaN
+        if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){
+          trick(target, key, type);
+        }
+      }
 
       return res;
     }
@@ -272,6 +289,26 @@ effect(()=>{
 //   console.log('删除');
 //   delete state.name
 // }, 2000)
+
+/*
+* 如果设置的属性不在对象是上，那么就会调用原型上的 set 即 parent 的set，而 parent 是个代理对象，又执行了它的 set 方法
+* 而读取的时候 不仅会收集 child.foo 方法，也会收集 parent.foo 方法，
+* 因此导致了修改 child.foo 方法，使副作用函数执行了二次
+* 屏蔽 parent.foo 触发的更新，
+*
+* */
+// const obj = {}
+// const proto = {foo: "1"}
+// const child = reactive(obj)
+// const parent = reactive(proto)
+// // parent 作为 child 的原型
+// Object.setPrototypeOf(child, parent)
+// effect(()=>{
+//   console.log('child.foo', child.foo);
+// })
+// child.foo = '2'
+// console.log('child.raw', child.raw === obj); // true
+// console.log('parent.raw', parent.raw === proto); // true
 
 module.exports = {
   reactive,
