@@ -13,8 +13,42 @@
 *     - computed：通过 options.lazy 来判断是否立即调用回调，从而实现 computed， effect 的回调的返回值作为计算属性的返回值
 *     - 通过不同的调度器来实现计算和侦听
 * */
+
+const TriggerType = {
+    ADD: 'ADD',
+    UPDATE: 'UPDATE',
+    DELETE: 'DELETE'
+}
+// 拦截 for in 操作，设置的唯一 key
+const ITERATE_KEY = Symbol();
+
 function reactive(target) {
   return new Proxy(target, {
+    // 对象读取操作： in 操作符拦截
+    has(target, key){
+      console.log('this is in operate, has,  key is ==', key);
+      track(target, key)
+
+      return Reflect.has(target, key)
+    },
+    ownKeys(target){
+      // 收集依赖的时候，key 为 symbol, 新增一个属性
+      track(target, ITERATE_KEY)
+      return Reflect.ownKeys(target)
+    },
+    // 删除 操作符拦截
+    deleteProperty(target, key) {
+      // 判断属性是否存在
+      const hadKey = Object.prototype.hasOwnProperty.call(target, key)
+      const res = Reflect.deleteProperty(target, key);
+
+      // 当被删除的属性存在，并且删除成功才触发更新
+      if (hadKey && res) {
+        trick(target, key, TriggerType.DELETE);
+      }
+      return res;
+    },
+    // 对象读取操作：属性读取 obj.foo
     get(target, key) {
 
       const res = Reflect.get(target, key);
@@ -25,10 +59,12 @@ function reactive(target) {
     },
 
     set(target, key, newValue, receiver) {
+      // 判断新增还是修改
+      const type = Object.prototype.hasOwnProperty.call(target, key)? TriggerType.UPDATE: TriggerType.ADD;
 
       const res = Reflect.set(target, key, newValue, receiver);
 
-      trick(target, key);
+      trick(target, key, type);
 
       return res;
     }
@@ -77,12 +113,12 @@ function track(target, key) {
   activeEffect.deps.push(_deps)
 }
 
-function trick(target, key, value, receiver) {
+function trick(target, key, type) {
   const _depMap = targetMap.get(target);
   if (!_depMap) return;
 
   const _deps = _depMap.get(key);
-  if (!_deps) return;
+  // if (!_deps) return;
 
   // _deps.forEach(effectFn => effectFn && effectFn());
   // 原因见 vue/v3/响应式的实现/demo/forEach.js
@@ -92,13 +128,22 @@ function trick(target, key, value, receiver) {
 
   // 版本三 无线循环递归调用
   const effectTask = new Set();
-  _deps.forEach(effectFn => {
+  _deps && _deps.forEach(effectFn => {
     // 如果 trick 触发的 effect 与当前正在执行的 effect 不同，则添加到任务中区
     if(effectFn !== activeEffect){
       effectTask.add(effectFn)
     }
   });
   // effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
+
+  if(type === TriggerType.ADD || type === TriggerType.DELETE){
+    const iterateEffects = _depMap.get(ITERATE_KEY)
+    iterateEffects && iterateEffects.forEach(effectFn => {
+      if(effectFn !== activeEffect){
+        effectTask.add(effectFn)
+      }
+    })
+  }
 
   // 调度器
   effectTask.forEach(effectFn =>{
@@ -215,6 +260,18 @@ effect(()=>{
 
 // state.level++;
 // state.level++;
+
+// effect(()=>{
+//   for(const key in state){
+//     console.log('this is in, key', key, state[key]);
+//   }
+// })
+// setTimeout(()=>{
+//   console.log('新增');
+//   state.name = 'gg'
+//   console.log('删除');
+//   delete state.name
+// }, 2000)
 
 module.exports = {
   reactive,
