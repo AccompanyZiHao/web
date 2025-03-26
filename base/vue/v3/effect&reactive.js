@@ -26,7 +26,7 @@ const TriggerType = {
 // 拦截 for in 操作，设置的唯一 key
 const ITERATE_KEY = Symbol();
 
-function reactive(target) {
+function reactive(target, isShallow = false, isReadonly = false) {
   return new Proxy(target, {
     // 对象读取操作： in 操作符拦截
     has(target, key){
@@ -62,12 +62,32 @@ function reactive(target) {
         return target;
       }
 
-      track(target, key);
+      // 浅响应式的直接返回原始值
+      if(isShallow){
+        return res;
+      }
+
+      // 只有只读的时候，没有必要建立响应式的联系
+      if(!isReadonly){
+        track(target, key);
+      }
+
+      // 如果是对象的多成嵌套，则递归调用 reactive，使其成为响应式
+      if(typeof res === 'object' && res !== null){
+        // return reactive(res);
+        // 深度只读处理
+        return isReadonly? reactive(res, isShallow, true) : reactive(res);
+      }
 
       return res;
     },
 
     set(target, key, newValue, receiver) {
+      if(isReadonly){
+        console.warn('this is readonly, set, key is ==', key);
+        return true
+      }
+
       const oldValue = target[key];
 
       // 判断新增还是修改
@@ -309,6 +329,20 @@ effect(()=>{
 // child.foo = '2'
 // console.log('child.raw', child.raw === obj); // true
 // console.log('parent.raw', parent.raw === proto); // true
+
+/*
+* 多层嵌套的
+* */
+// const obj = reactive({
+//   foo: {
+//     bar: 1
+//   }
+// })
+// effect(()=>{
+//   console.log('obj.foo.bar', obj.foo.bar);
+// })
+// obj.foo.bar = 2
+
 
 module.exports = {
   reactive,
