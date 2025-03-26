@@ -16,39 +16,45 @@
 * 6. 删除通过 deleteProperty 进行拦截，同新增
 * 7. 修改判断值是否相同，不同再修改，注意 NaN 的判断
 * 8. 对于修改原型的方法，通过拦截器的 receiver.raw 来判断是否是代理对象，如果是的话则不更新
+* 9. 数组的修改
+*     - length 修改，只对索引大于当前最新值的索引，才修改
+*     - 遍历数组
 * */
 
 const TriggerType = {
-    ADD: 'ADD',
-    UPDATE: 'UPDATE',
-    DELETE: 'DELETE'
-}
+  ADD: 'ADD',
+  UPDATE: 'UPDATE',
+  DELETE: 'DELETE'
+};
 // 拦截 for in 操作，设置的唯一 key
 const ITERATE_KEY = Symbol();
 
 function reactive(target, isShallow = false, isReadonly = false) {
   return new Proxy(target, {
     // 对象读取操作： in 操作符拦截
-    has(target, key){
+    has(target, key) {
       console.log('this is in operate, has,  key is ==', key);
-      track(target, key)
+      track(target, key);
 
-      return Reflect.has(target, key)
+      return Reflect.has(target, key);
     },
-    ownKeys(target){
+    ownKeys(target) {
+      // for in 触发的场景
       // 收集依赖的时候，key 为 symbol, 新增一个属性
-      track(target, ITERATE_KEY)
-      return Reflect.ownKeys(target)
+      // track(target, ITERATE_KEY);
+      // 如果是数组，用 length 作为 key 建立联系
+      track(target, Array.isArray(target) ? 'length' : ITERATE_KEY);
+      return Reflect.ownKeys(target);
     },
     // 删除 操作符拦截
     deleteProperty(target, key) {
-      if(isReadonly){
+      if (isReadonly) {
         console.warn('this is readonly, set, key is ==', key);
-        return true
+        return true;
       }
 
       // 判断属性是否存在
-      const hadKey = Object.prototype.hasOwnProperty.call(target, key)
+      const hadKey = Object.prototype.hasOwnProperty.call(target, key);
       const res = Reflect.deleteProperty(target, key);
 
       // 当被删除的属性存在，并且删除成功才触发更新
@@ -63,48 +69,57 @@ function reactive(target, isShallow = false, isReadonly = false) {
       const res = Reflect.get(target, key);
 
       // 代理对象可以通过 raw 属性访问原始对象
-      if(key === 'raw'){
+      if (key === 'raw') {
         return target;
       }
 
       // 浅响应式的直接返回原始值
-      if(isShallow){
+      if (isShallow) {
         return res;
       }
 
       // 只有只读的时候，没有必要建立响应式的联系
-      if(!isReadonly){
+      // 无论数组使用 for of 还是 ,values 的方式都会读取 symbol.iterator 属性，为避免发生意外，需要排除掉
+      // 副作用函数不应该与 symbol.iterator 之间建立联系
+      if (!isReadonly && typeof key !== 'symbol') {
         track(target, key);
       }
 
       // 如果是对象的多成嵌套，则递归调用 reactive，使其成为响应式
-      if(typeof res === 'object' && res !== null){
+      if (typeof res === 'object' && res !== null) {
         // return reactive(res);
         // 深度只读处理
-        return isReadonly? reactive(res, isShallow, true) : reactive(res);
+        return isReadonly ? reactive(res, isShallow, true) : reactive(res);
       }
 
       return res;
     },
 
     set(target, key, newValue, receiver) {
-      if(isReadonly){
+      if (isReadonly) {
         console.warn('this is readonly, set, key is ==', key);
-        return true
+        return true;
       }
 
       const oldValue = target[key];
 
-      // 判断新增还是修改
-      const type = Object.prototype.hasOwnProperty.call(target, key)? TriggerType.UPDATE: TriggerType.ADD;
+      // // 判断新增还是修改
+      // const type = Object.prototype.hasOwnProperty.call(target, key)? TriggerType.UPDATE: TriggerType.ADD;
+
+      // 添加数组的判断
+      const type = Array.isArray(target)
+        // 检测数组的索引是否小于数组的长度，小于则修改，否则是新增 ,key: 索引
+        ? Number(key) < target.length ? TriggerType.UPDATE : TriggerType.ADD
+        // 对象的检测
+        : Object.prototype.hasOwnProperty.call(target, key) ? TriggerType.UPDATE : TriggerType.ADD;
 
       const res = Reflect.set(target, key, newValue, receiver);
 
       // 只有 receiver 是 target 的代理对象时，才触发更新
-      if(target === receiver.raw){
+      if (target === receiver.raw) {
         // 旧的值不等于新的值 并且 值不等于 NaN
-        if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){
-          trick(target, key, type);
+        if (oldValue !== newValue && (oldValue === oldValue || newValue === newValue)) {
+          trick(target, key, type, newValue);
         }
       }
 
@@ -132,7 +147,7 @@ let activeEffect = null;
 const targetMap = new WeakMap();
 
 function track(target, key) {
-  if(!activeEffect) return
+  if (!activeEffect) return;
 
   let _depMap = targetMap.get(target);
   // 如果不存在 depMap 则重新建立一个 map 并和 target 关联起来
@@ -152,10 +167,10 @@ function track(target, key) {
   _deps.add(activeEffect);
 
   // 收集依赖
-  activeEffect.deps.push(_deps)
+  activeEffect.deps.push(_deps);
 }
 
-function trick(target, key, type) {
+function trick(target, key, type, newValue) {
   const _depMap = targetMap.get(target);
   if (!_depMap) return;
 
@@ -172,30 +187,53 @@ function trick(target, key, type) {
   const effectTask = new Set();
   _deps && _deps.forEach(effectFn => {
     // 如果 trick 触发的 effect 与当前正在执行的 effect 不同，则添加到任务中区
-    if(effectFn !== activeEffect){
-      effectTask.add(effectFn)
+    if (effectFn !== activeEffect) {
+      effectTask.add(effectFn);
     }
   });
   // effectTask && effectTask.forEach(effectFn => effectFn && effectFn());
 
-  if(type === TriggerType.ADD || type === TriggerType.DELETE){
-    const iterateEffects = _depMap.get(ITERATE_KEY)
-    iterateEffects && iterateEffects.forEach(effectFn => {
-      if(effectFn !== activeEffect){
-        effectTask.add(effectFn)
+  // 如果修改了数组的 length
+  if (Array.isArray(target) && key === 'length') {
+    _depMap.forEach((effects, key) => {
+      // 只需要对索引大于新的 length 副作用重新执行
+      if (key >= newValue) {
+        effects.forEach(effectFn => {
+          if (effectFn !== activeEffect) {
+            effectTask.add(effectFn);
+          }
+        });
       }
-    })
+    });
+  }
+
+  // 数组的新增
+  if (type === TriggerType.ADD && Array.isArray(target)) {
+    // 获取与 length 相关的 effect
+    const lengthEffects = _depMap.get('length');
+    lengthEffects && lengthEffects.forEach(effectFn => {
+      if (effectFn !== activeEffect) {
+        effectTask.add(effectFn);
+      }
+    });
+  } else if (type === TriggerType.ADD || type === TriggerType.DELETE) {
+    const iterateEffects = _depMap.get(ITERATE_KEY);
+    iterateEffects && iterateEffects.forEach(effectFn => {
+      if (effectFn !== activeEffect) {
+        effectTask.add(effectFn);
+      }
+    });
   }
 
   // 调度器
-  effectTask.forEach(effectFn =>{
+  effectTask.forEach(effectFn => {
     // 如果存在调度器，则使用该调度器，并把副作用函数作为参数传递
-    if(effectFn.options && effectFn.options.scheduler){
-      effectFn.options.scheduler(effectFn)
-    }else{
-      effectFn && effectFn()
+    if (effectFn.options && effectFn.options.scheduler) {
+      effectFn.options.scheduler(effectFn);
+    } else {
+      effectFn && effectFn();
     }
-  })
+  });
 }
 
 // 通过建立一个栈来保存 effect 函数，解决 effect 嵌套的问题，确保 activeEffect 始终指向当前正在执行的 effect
@@ -207,30 +245,30 @@ function effect(fn, options) {
       effectStack.push(effectFn);
       activeEffect = effectFn;
       // 清除
-      cleanup(effectFn)
+      cleanup(effectFn);
       // fn();
       // 为实现计算属性，需要返回 fn() 的结果
-      return fn()
+      return fn();
     } finally {
       effectStack.pop();
       activeEffect = effectStack[effectStack.length - 1];
     }
   };
-  effectFn.options = options
-  effectFn.deps = []
+  effectFn.options = options;
+  effectFn.deps = [];
 
   // 只有 lazy 不存在 时才执行
-  if(!options || !options.lazy){
+  if (!options || !options.lazy) {
     effectFn();
   }
   return effectFn;
 }
 
 // 清除依赖
-function cleanup(effectFn){
-  effectFn.deps.forEach(dep => dep.delete(effectFn))
+function cleanup(effectFn) {
+  effectFn.deps.forEach(dep => dep.delete(effectFn));
 
-  effectFn.deps = []
+  effectFn.deps = [];
 }
 
 // 实现一个调度器
@@ -239,15 +277,16 @@ const jobQueue = new Set();
 const p = Promise.resolve();
 // 是否正在刷新
 let isFlushing = false;
+
 function flush() {
-  if(isFlushing) return
+  if (isFlushing) return;
   isFlushing = true;
 
   p.then(() => {
-    jobQueue.forEach(job => job())
+    jobQueue.forEach(job => job());
   }).finally(() => {
-    isFlushing = false
-  })
+    isFlushing = false;
+  });
 }
 
 
@@ -287,18 +326,18 @@ const state = reactive({
 //   state.level +=1
 // })
 
-function scheduler(fn){
-  jobQueue.add(fn)
-  flush()
+function scheduler(fn) {
+  jobQueue.add(fn);
+  flush();
 }
 
 // 任务调度
-effect(()=>{
+effect(() => {
   // 多次改变执行一次，异步操作
   console.log('state.level', state.level);
 }, {
   scheduler
-})
+});
 
 // state.level++;
 // state.level++;
@@ -349,9 +388,38 @@ effect(()=>{
 // obj.foo.bar = 2
 
 
+/*
+* 数组长度和索引
+* */
+// const arr = reactive(['a', 'b', 'c']);
+// effect(() => {
+//   console.log('arr[i]', i, arr[i]);
+// });
+// arr['length'] = 0;
+// setTimeout(() => {
+//   arr.length = 1;
+// }, 1000);
+
+
+/*
+* 数组循环
+* */
+// const arr = reactive(['a', 'b', 'c']);
+// effect(() => {
+//   // for (const item in arr){
+//   //   console.log('item', item, arr[item]);
+//   // }
+//   for (const item of arr.values()) {
+//     console.log(item);
+//   }
+// });
+// // arr[3] = 'd'
+// arr.length = 1;
+
+
 module.exports = {
   reactive,
   effect,
   track,
   trick,
-}
+};
