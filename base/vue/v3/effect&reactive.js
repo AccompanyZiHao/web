@@ -42,6 +42,11 @@ function reactive(target, isShallow = false, isReadonly = false) {
     },
     // 删除 操作符拦截
     deleteProperty(target, key) {
+      if(isReadonly){
+        console.warn('this is readonly, set, key is ==', key);
+        return true
+      }
+
       // 判断属性是否存在
       const hadKey = Object.prototype.hasOwnProperty.call(target, key)
       const res = Reflect.deleteProperty(target, key);
