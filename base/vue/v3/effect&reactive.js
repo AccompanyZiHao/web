@@ -18,7 +18,9 @@
 * 8. 对于修改原型的方法，通过拦截器的 receiver.raw 来判断是否是代理对象，如果是的话则不更新
 * 9. 数组的修改
 *     - length 修改，只对索引大于当前最新值的索引，才修改
-*     - 遍历数组
+*     - 遍历数组 ownKeys 通过 length 建立联系； 无论 for  of 还是 array.values 最终都会访问 symbol.iterator 属性，因此需要拦截，不需要建立响应式的关系
+*     - 查找 includes, indexOf, lastIndexOf, 由于这些方法内部的 this 指向的是一个新的代理对象，为了避免为同一个对象创建新的代理，通过 map 来进行存储；由于 arr 内部是个代理对象，通过原始对象去查找的时候，会找不到，因此需要改写这些方法
+*
 * */
 
 const TriggerType = {
@@ -28,9 +30,36 @@ const TriggerType = {
 };
 // 拦截 for in 操作，设置的唯一 key
 const ITERATE_KEY = Symbol();
+// 存储原始对象到代理对象的映射
+const reactiveMap = new Map();
+
+// 数组修改的方法
+const arrayMethods = {};
+
+['includes', 'indexOf', 'lastIndexOf'].forEach((methodName) => {
+  // 原始方法
+  const originMethods = Array.prototype[methodName];
+
+  arrayMethods[methodName] = function (...args) {
+    // this 是代理对象，先在代理对象中查找
+    let res = originMethods.apply(this, args);
+    if (res === false) {
+      // 没找到，则去 this.raw 的原始数组中找
+      res = originMethods.apply(this.raw, args);
+    }
+
+    return res;
+  };
+});
+
 
 function reactive(target, isShallow = false, isReadonly = false) {
-  return new Proxy(target, {
+
+  // 通过原始对象寻找原来的代理对象。找到了直接返回
+  const existProxy = reactiveMap.get(target);
+  if (existProxy) return existProxy;
+
+  const proxy = new Proxy(target, {
     // 对象读取操作： in 操作符拦截
     has(target, key) {
       console.log('this is in operate, has,  key is ==', key);
@@ -76,6 +105,11 @@ function reactive(target, isShallow = false, isReadonly = false) {
       // 浅响应式的直接返回原始值
       if (isShallow) {
         return res;
+      }
+
+      // 如果对象是数组，并且 key 值存在 arrayMethods 中，返回 arrayMethods 的值
+      if (Array.isArray(target) && arrayMethods.hasOwnProperty(key)) {
+        return Reflect.get(arrayMethods, key, target);
       }
 
       // 只有只读的时候，没有必要建立响应式的联系
@@ -126,6 +160,10 @@ function reactive(target, isShallow = false, isReadonly = false) {
       return res;
     }
   });
+
+  // 没找到则添加
+  reactiveMap.set(target, proxy);
+  return proxy;
 }
 
 let activeEffect = null;
@@ -416,6 +454,13 @@ effect(() => {
 // // arr[3] = 'd'
 // arr.length = 1;
 
+/*
+* 数组查找
+* */
+const obj = [{}];
+const arr = reactive([obj]);
+console.log(arr.includes(arr[0])); // true
+console.log(arr.includes(obj)); // false 需要改写 includes 方法, 该写完之后为 true
 
 module.exports = {
   reactive,
