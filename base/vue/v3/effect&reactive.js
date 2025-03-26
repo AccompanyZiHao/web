@@ -20,6 +20,7 @@
 *     - length 修改，只对索引大于当前最新值的索引，才修改
 *     - 遍历数组 ownKeys 通过 length 建立联系； 无论 for  of 还是 array.values 最终都会访问 symbol.iterator 属性，因此需要拦截，不需要建立响应式的关系
 *     - 查找 includes, indexOf, lastIndexOf, 由于这些方法内部的 this 指向的是一个新的代理对象，为了避免为同一个对象创建新的代理，通过 map 来进行存储；由于 arr 内部是个代理对象，通过原始对象去查找的时候，会找不到，因此需要改写这些方法
+*     - 隐式修改数组长度 pop, shift, unshift, splice, 这些会触发 lenth 的修改， 因此需要拦截
 *
 * */
 
@@ -52,6 +53,26 @@ const arrayMethods = {};
   };
 });
 
+// 是否进行追踪
+let shouldTrack = true;
+/*
+* 这些方法会间接的改变数组的长度，从而读取 length 属性，并且还会设置 length 的值
+* 理论上，我们只需要屏蔽对 length 属性的读取就可以了，从而避免它与副作用函数之间建立联系
+* 但是这些操作语意上是 set 操作，为了避免建立响应式的联系不产生其他的副作用，因此对这些方法进行了拦截修改
+* */
+
+['pop', 'push', 'shift', 'unshift', 'splice'].forEach((methodName) => {
+  const originMethods = Array.prototype[methodName];
+
+  arrayMethods[methodName] = function (...args) {
+    shouldTrack = false;
+    // 此方法会修改数组的 length 触发 trick
+    const res = originMethods.apply(this, args);
+    shouldTrack = true;
+
+    return res;
+  };
+});
 
 function reactive(target, isShallow = false, isReadonly = false) {
 
@@ -185,7 +206,7 @@ let activeEffect = null;
 const targetMap = new WeakMap();
 
 function track(target, key) {
-  if (!activeEffect) return;
+  if (!activeEffect || !shouldTrack) return;
 
   let _depMap = targetMap.get(target);
   // 如果不存在 depMap 则重新建立一个 map 并和 target 关联起来
@@ -457,10 +478,27 @@ effect(() => {
 /*
 * 数组查找
 * */
-const obj = [{}];
-const arr = reactive([obj]);
-console.log(arr.includes(arr[0])); // true
-console.log(arr.includes(obj)); // false 需要改写 includes 方法, 该写完之后为 true
+// const obj = [{}];
+// const arr = reactive([obj]);
+// console.log(arr.includes(arr[0])); // true
+// console.log(arr.includes(obj)); // false 需要改写 includes 方法, 该写完之后为 true
+
+/*
+* 隐式修改数组长度
+* */
+const arr = reactive([1, 2, 3]);
+effect(() => {
+  arr.push('a');
+});
+effect(() => {
+  arr.push('b');
+});
+effect(()=>{
+  console.log('arr', arr);
+})
+
+// 为修改之前，连续调用会陷入死循环
+
 
 module.exports = {
   reactive,
