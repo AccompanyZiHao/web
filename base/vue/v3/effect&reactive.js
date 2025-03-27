@@ -20,7 +20,8 @@
 *     - length 修改，只对索引大于当前最新值的索引，才修改
 *     - 遍历数组 ownKeys 通过 length 建立联系； 无论 for  of 还是 array.values 最终都会访问 symbol.iterator 属性，因此需要拦截，不需要建立响应式的关系
 *     - 查找 includes, indexOf, lastIndexOf, 由于这些方法内部的 this 指向的是一个新的代理对象，为了避免为同一个对象创建新的代理，通过 map 来进行存储；由于 arr 内部是个代理对象，通过原始对象去查找的时候，会找不到，因此需要改写这些方法
-*     - 隐式修改数组长度 pop, shift, unshift, splice, 这些会触发 lenth 的修改， 因此需要拦截
+*     - 隐式修改数组长度 pop, shift, unshift, splice, 这些会触发 length 的修改， 因此需要拦截
+*     - 更多方法： https://github.com/vuejs/core/blob/main/packages/reactivity/src/arrayInstrumentations.ts
 *
 * */
 
@@ -31,6 +32,9 @@ const TriggerType = {
 };
 // 拦截 for in 操作，设置的唯一 key
 const ITERATE_KEY = Symbol();
+// map 的 keys 只关心数据键的变化，而不关心值的变化
+const MAP_KEYS_ITERATE_KEY = Symbol();
+
 // 存储原始对象到代理对象的映射
 const reactiveMap = new Map();
 
@@ -117,6 +121,12 @@ function reactive(target, isShallow = false, isReadonly = false) {
     get(target, key) {
 
       const res = Reflect.get(target, key);
+
+      // 比如 map set 类型的
+      if (Object.prototype.toString.call(target) === '[object Map]' ||
+        Object.prototype.toString.call(target) === '[object Set]') {
+        // todo
+      }
 
       // 代理对象可以通过 raw 属性访问原始对象
       if (key === 'raw') {
@@ -275,8 +285,18 @@ function trick(target, key, type, newValue) {
         effectTask.add(effectFn);
       }
     });
-  } else if (type === TriggerType.ADD || type === TriggerType.DELETE) {
+  } else if (type === TriggerType.ADD || type === TriggerType.DELETE ||
+    // 跟新操作的 map 类型的数据需要重新执行
+    (type === TriggerType.UPDATE && Object.prototype.toString.call(target) === '[object Map]')) {
+
     const iterateEffects = _depMap.get(ITERATE_KEY);
+    iterateEffects && iterateEffects.forEach(effectFn => {
+      if (effectFn !== activeEffect) {
+        effectTask.add(effectFn);
+      }
+    });
+  } else if ((type === TriggerType.ADD || type === TriggerType.DELETE) && Object.prototype.toString.call(target) === '[object Map]') {
+    const iterateEffects = _depMap.get(MAP_KEYS_ITERATE_KEY);
     iterateEffects && iterateEffects.forEach(effectFn => {
       if (effectFn !== activeEffect) {
         effectTask.add(effectFn);
@@ -385,18 +405,18 @@ const state = reactive({
 //   state.level +=1
 // })
 
-function scheduler(fn) {
-  jobQueue.add(fn);
-  flush();
-}
+// function scheduler(fn) {
+//   jobQueue.add(fn);
+//   flush();
+// }
 
 // 任务调度
-effect(() => {
-  // 多次改变执行一次，异步操作
-  console.log('state.level', state.level);
-}, {
-  scheduler
-});
+// effect(() => {
+//   // 多次改变执行一次，异步操作
+//   console.log('state.level', state.level);
+// }, {
+//   scheduler
+// });
 
 // state.level++;
 // state.level++;
@@ -486,18 +506,17 @@ effect(() => {
 /*
 * 隐式修改数组长度
 * */
-const arr = reactive([1, 2, 3]);
-effect(() => {
-  arr.push('a');
-});
-effect(() => {
-  arr.push('b');
-});
-effect(()=>{
-  console.log('arr', arr);
-})
-
-// 为修改之前，连续调用会陷入死循环
+// const arr = reactive([1, 2, 3]);
+// effect(() => {
+//   arr.push('a');
+// });
+// effect(() => {
+//   arr.push('b');
+// });
+// effect(()=>{
+//   console.log('arr', arr);
+// })
+// 未修改之前，连续调用会陷入死循环
 
 
 module.exports = {
@@ -505,4 +524,7 @@ module.exports = {
   effect,
   track,
   trick,
+  ITERATE_KEY,
+  MAP_KEYS_ITERATE_KEY,
+  TriggerType,
 };
