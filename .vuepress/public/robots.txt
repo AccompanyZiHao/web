@@ -1,0 +1,3 @@
+Sitemap: https://wuxiaobai.cn/study/sitemap.xml
+
+User-agent: *
