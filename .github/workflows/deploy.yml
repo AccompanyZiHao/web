@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Fix image paths
+        run: ln -s web ../docs
+
       - name: Install VuePress
         run: |
           npm init -y
