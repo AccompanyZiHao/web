@@ -27,7 +27,7 @@ jobs:
       - name: Install VuePress
         run: |
           npm init -y
-          npm install vuepress@1 @vuepress/theme-reco moment vuepress-plugin-code-copy vuepress-plugin-cursor-effects vuepress-plugin-dynamic-title vuepress-plugin-copyright vuepress-plugin-permalink-pinyin vuepress-plugin-sitemap vuepress-plugin-seo
+          npm install vuepress@1 vuepress-theme-reco moment vuepress-plugin-code-copy vuepress-plugin-cursor-effects vuepress-plugin-dynamic-title vuepress-plugin-copyright vuepress-plugin-permalink-pinyin vuepress-plugin-sitemap vuepress-plugin-seo
 
       - name: Build
         run: npx vuepress build .
