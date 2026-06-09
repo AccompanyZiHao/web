@@ -1,3 +1,15 @@
+---
+title: 'webpack'
+author: 白菜
+date: '2025-2-21'
+categories:
+  - '工程化'
+tags:
+  - 'webpack'
+  - '工程化'
+---
+
+
 
 ## 性能优化
 
@@ -554,6 +566,3 @@ if (cachedSettings) {
    // 设置加载模式 
    import(/* webpackMode: "lazy" */ './module.js')
    ```
-
-
-

@@ -1,6 +1,18 @@
 ---
 title: 'Class'
 author: 白菜
+date: '2022-6-27'
+categories:
+  - 'ES6'
+tags:
+  - 'ES6'
+  - 'Class'
+---
+
+
+---
+title: 'Class'
+author: 白菜
 date: '2022-5-28 10:19:26'
 categories:
   - JavaScript

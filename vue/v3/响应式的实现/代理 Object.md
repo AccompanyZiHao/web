@@ -1,3 +1,15 @@
+---
+title: '代理 Object'
+author: 白菜
+date: '2025-3-26'
+categories:
+  - 'Vue'
+tags:
+  - 'Vue3'
+  - '响应式'
+---
+
+
 
 对对象的读取操作
 1. 访问属性: `obj.foo`
@@ -114,6 +126,3 @@ new Proxy(target, {
   }
 })
 ```
-
-
-

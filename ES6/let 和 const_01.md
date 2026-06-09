@@ -1,4 +1,15 @@
 ---
+title: 'let 和 const'
+author: 白菜
+date: '2022-6-27'
+categories:
+  - 'ES6'
+tags:
+  - 'ES6'
+---
+
+
+---
 title: let 和 const
 author: 白菜
 date: '2022-04-27'

@@ -1,6 +1,18 @@
 ---
 title: 'Class 的继承'
 author: 白菜
+date: '2022-6-27'
+categories:
+  - 'ES6'
+tags:
+  - 'ES6'
+  - 'Class'
+---
+
+
+---
+title: 'Class 的继承'
+author: 白菜
 date: '2022-05-31 22:19:55'
 categories:
   - JavaScript

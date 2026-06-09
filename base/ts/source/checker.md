@@ -1,3 +1,15 @@
+---
+title: 'checker'
+author: 白菜
+date: '2023-7-4'
+categories:
+  - 'TypeScript'
+tags:
+  - 'TypeScript'
+  - '源码'
+---
+
+
 ## 与绑定器的关系
 
 绑定器被检查器在内部调用，简化的调用栈如下所示：

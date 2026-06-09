@@ -1,3 +1,15 @@
+---
+title: 'scanner'
+author: 白菜
+date: '2023-7-3'
+categories:
+  - 'TypeScript'
+tags:
+  - 'TypeScript'
+  - '源码'
+---
+
+
 
 ## scanner
 

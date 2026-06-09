@@ -1,3 +1,15 @@
+---
+title: 'binder'
+author: 白菜
+date: '2023-7-4'
+categories:
+  - 'TypeScript'
+tags:
+  - 'TypeScript'
+  - '源码'
+---
+
+
 
 绑定器的主要作用是创建符号 `Symbol` 把节点和符号关联起来，这样就可以通过节点找到符号，也可以通过符号找到节点。
 

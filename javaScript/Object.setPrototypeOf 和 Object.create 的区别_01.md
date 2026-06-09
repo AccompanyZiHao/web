@@ -1,6 +1,17 @@
 ---
 title: 'Object.setPrototypeOf 和 Object.create 的区别'
 author: 白菜
+date: '2022-6-27'
+categories:
+  - 'JavaScript'
+tags:
+  - 'JavaScript'
+---
+
+
+---
+title: 'Object.setPrototypeOf 和 Object.create 的区别'
+author: 白菜
 date: '2022-06-09 14:47:22'
 categories:
   - 'JavaScript'

@@ -1,3 +1,15 @@
+---
+title: 'emitter'
+author: 白菜
+date: '2023-7-3'
+categories:
+  - 'TypeScript'
+tags:
+  - 'TypeScript'
+  - '源码'
+---
+
+
 TypeScript 编译器提供了两个发射器：
 
 1. emitter.ts：可能是你最感兴趣的发射器，它是 TS -> JavaScript 的发射器
@@ -605,4 +617,3 @@ function updateOrPushBundleFileTextLike(pos: number, end: number, kind: BundleFi
 ```
 
 ![emitter](https://cdn.jsdelivr.net/gh/AccompanyZiHao/images/typeScript/emitter.png)
-

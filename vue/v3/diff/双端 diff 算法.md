@@ -1,3 +1,15 @@
+---
+title: '双端 diff 算法'
+author: 白菜
+date: '2025-3-7'
+categories:
+  - 'Vue'
+tags:
+  - 'Vue3'
+  - 'diff'
+---
+
+
 
 ## 原理
 
@@ -299,4 +311,3 @@ function patchKeyedChildren(n1, n2, container){
 双端循环结束，如果 `oldEndIndex < oldStartIndex && newStartIndex <= newEndIndex` 则说明有遗漏的新增元素，需要挂载。
 
 如果 `newEndIndex < newStartIndex && oldStartIndex <= oldEndIndex` 则说明有遗漏的删除元素，需要删除。
-

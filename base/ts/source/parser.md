@@ -1,3 +1,15 @@
+---
+title: 'parser'
+author: 白菜
+date: '2023-7-4'
+categories:
+  - 'TypeScript'
+tags:
+  - 'TypeScript'
+  - '源码'
+---
+
+
 
 
 将 `token` 流转换成 `AST`，这个过程就是解析器的工作。

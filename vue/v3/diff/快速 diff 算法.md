@@ -1,3 +1,15 @@
+---
+title: '快速 diff 算法'
+author: 白菜
+date: '2025-3-7'
+categories:
+  - 'Vue'
+tags:
+  - 'Vue3'
+  - 'diff'
+---
+
+
 ## 相同的前置和后置元素
 
 包含预处理步骤，借鉴了纯本文 diff 算法的思路。在进行核心 diff 算法之前，对两段文本进行预处理。

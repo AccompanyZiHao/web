@@ -3,6 +3,11 @@ title: vue3 Composition API
 author: 白菜
 date: '2022-04-20'
 issueId: 7
+categories:
+  - 'Vue3'
+tags:
+  - 'Vue3'
+  - 'Composition API'
 ---
 
 <!--

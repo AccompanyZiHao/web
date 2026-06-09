@@ -1,4 +1,15 @@
 ---
+title: 'set 和 map'
+author: 白菜
+date: '2022-6-27'
+categories:
+  - 'ES6'
+tags:
+  - 'ES6'
+---
+
+
+---
 title: 'set 和 map '
 author: 白菜
 date: '2022-05-17 14:08:33'

@@ -1,3 +1,14 @@
+---
+title: 'network'
+author: 白菜
+date: '2026-6-4'
+categories:
+  - '基础'
+tags:
+  - '网络'
+---
+
+
 
 ## 网络分层模型
 
@@ -20,4 +31,3 @@ url 的本质是获取资源
 
 session + cookie 服务端控制，控制力比较强，立即失效
 token 客户端处理
-

@@ -1,3 +1,15 @@
+---
+title: '实现一个简易的 reactive'
+author: 白菜
+date: '2025-2-21'
+categories:
+  - 'Vue'
+tags:
+  - 'Vue3'
+  - '响应式'
+---
+
+
 ## reactive 函数
 
 通过 `reactive` 函数创建一个新的 `Proxy` 对象，用于拦截对象的读取和设置操作。在 `get` 拦截器中，使用 `track` 函数追踪对象属性的依赖关系。在 `set` 拦截器中，使用 `trigger` 函数触发所有依赖于该属性的副作用。
